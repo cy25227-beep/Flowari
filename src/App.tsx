@@ -33,6 +33,7 @@ function App() {
   const [submitted, setSubmitted] = useState(false)
   const [splitMode, setSplitMode] = useState<SplitMode>('割り勘')
   const [setupComplete, setSetupComplete] = useState(false)
+  const [shareReady, setShareReady] = useState(false)
   const [registeredMembers, setRegisteredMembers] = useState<string[]>([])
   const [records, setRecords] = useState<HistoryEntry[]>([])
   const [completedTransfers, setCompletedTransfers] = useState<string[]>([])
@@ -97,7 +98,7 @@ function App() {
         <section className="phone" aria-label="Flowariのアプリ画面">
           <div className="app-header"><button className="mascot destination-trigger" onClick={() => setDestinationMenuOpen((current) => !current)} aria-label="行先テーマを選ぶ" aria-expanded={destinationMenuOpen}>◌</button><div><b>Flowari</b><small>{setupComplete ? 'なかよく、すっきり精算' : 'はじめる準備'}</small></div></div>
           {destinationMenuOpen && <div className="destination-menu" role="dialog" aria-label="行先を選ぶ"><p>行先を選ぶ</p><div>{(['山', '海', '街'] as Destination[]).map((place) => <button key={place} className={destination === place ? 'selected' : ''} onClick={() => { setDestination(place); setDestinationMenuOpen(false) }}><img src={destinationIllustrations[place]} alt="" />{place}</button>)}</div></div>}
-          {!setupComplete ? <SetupScreen destination={destination} onComplete={(members) => { setRegisteredMembers(members); setPaidBy(members[0]); setBeneficiary(members); setSetupComplete(true); if (supabase) void (async () => { await supabase.from('groups').upsert({ id: groupId, name: 'Flowariグループ' }); await supabase.from('members').insert(members.map((name) => ({ group_id: groupId, name }))) })() }} /> : <>
+          {!setupComplete ? (shareReady ? <ShareScreen groupId={groupId} onContinue={() => setSetupComplete(true)} /> : <SetupScreen destination={destination} onComplete={(members) => { setRegisteredMembers(members); setPaidBy(members[0]); setBeneficiary(members); setShareReady(true); if (supabase) void (async () => { await supabase.from('groups').upsert({ id: groupId, name: 'Flowariグループ' }); await supabase.from('members').insert(members.map((name) => ({ group_id: groupId, name }))) })() }} />) : <>
           <nav className="tabs" aria-label="画面切り替え">
             {(['入力', '履歴', '精算', '明細'] as Screen[]).map((name) => <button key={name} className={screen === name ? 'active' : ''} onClick={() => setScreen(name)}>{name}</button>)}
           </nav>
@@ -294,6 +295,24 @@ function DetailsScreen({ entries }: { entries: HistoryEntry[] }) {
     <DailyExpenses members={Array.from(new Set(entries.flatMap((entry) => [entry.paidBy, ...entry.beneficiary])))} entries={entries} />
     <div className="detail-tip"><span>◎</span><p><b>差額は精算画面でまとめて解決</b><br />誰が誰に払うか、最短ルートで案内します。</p></div>
   </>
+}
+
+function ShareScreen({ groupId, onContinue }: { groupId: string; onContinue: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const shareUrl = `${window.location.origin}${window.location.pathname}?group=${groupId}`
+  const copy = async () => {
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+  }
+  return <section className="setup-screen share-screen">
+    <div className="share-icon" aria-hidden="true">↗</div>
+    <p className="eyebrow">SHARE YOUR GROUP</p>
+    <h2>グループを共有しよう</h2>
+    <p className="setup-copy">このURLをみんなに送ると、同じメンバーと履歴を一緒に編集できます。</p>
+    <div className="share-url">{shareUrl}</div>
+    <button className="primary-button" onClick={copy}>{copied ? 'コピーしました ✓' : '共有URLをコピー'}</button>
+    <button className="share-continue" onClick={onContinue}>Flowariをはじめる →</button>
+  </section>
 }
 
 function DailyExpenses({ members, entries }: { members: string[]; entries: HistoryEntry[] }) {
