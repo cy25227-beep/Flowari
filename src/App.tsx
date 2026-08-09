@@ -35,6 +35,7 @@ function App() {
   const [setupComplete, setSetupComplete] = useState(false)
   const [shareReady, setShareReady] = useState(false)
   const [showShareScreen, setShowShareScreen] = useState(false)
+  const [syncError, setSyncError] = useState('')
   const [registeredMembers, setRegisteredMembers] = useState<string[]>([])
   const [records, setRecords] = useState<HistoryEntry[]>([])
   const [completedTransfers, setCompletedTransfers] = useState<string[]>([])
