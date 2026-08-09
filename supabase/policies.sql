@@ -8,6 +8,11 @@ as $$
   select nullif(regexp_replace(current_setting('request.headers', true)::json->>'x-client-info', '^flowari-group/', ''), '')::uuid
 $$;
 
+drop policy if exists "flowari group access" on public.groups;
+drop policy if exists "flowari member access" on public.members;
+drop policy if exists "flowari expense access" on public.expenses;
+drop policy if exists "flowari payment access" on public.payments;
+
 create policy "flowari group access" on public.groups
   for all to anon, authenticated
   using (id = public.flowari_group_id())
@@ -28,4 +33,9 @@ create policy "flowari payment access" on public.payments
   using (exists (select 1 from public.expenses e where e.id = expense_id and e.group_id = public.flowari_group_id()))
   with check (exists (select 1 from public.expenses e where e.id = expense_id and e.group_id = public.flowari_group_id()));
 
-alter publication supabase_realtime add table public.expenses;
+do $$
+begin
+  alter publication supabase_realtime add table public.expenses;
+exception when duplicate_object then
+  null;
+end $$;
