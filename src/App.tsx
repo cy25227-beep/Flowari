@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch
 import mountainIllustration from './assets/mountain.png'
 import seaIllustration from './assets/sea.png'
 import cityIllustration from './assets/city.png'
+import { supabase } from './lib/supabase'
 
 type Screen = '入力' | '履歴' | '精算' | '明細'
 type SplitMode = '割り勘' | '男気' | '先輩'
@@ -38,8 +39,41 @@ function App() {
   const [allPaidCelebrated, setAllPaidCelebrated] = useState(false)
   const [destination, setDestination] = useState<Destination>('街')
   const [destinationMenuOpen, setDestinationMenuOpen] = useState(false)
+  const groupId = useMemo(() => {
+    const params = new URLSearchParams(window.location.search)
+    const existing = params.get('group')
+    if (existing) return existing
+    const created = crypto.randomUUID()
+    params.set('group', created)
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+    return created
+  }, [])
   const activeMembers = registeredMembers.length > 0 ? registeredMembers : people.map((person) => person.name)
   const total = useMemo(() => records.reduce((sum, entry) => sum + entry.amount, 0), [records])
+
+  useEffect(() => {
+    if (!supabase) return
+    const client = supabase
+    const load = async () => {
+      const [{ data: memberRows }, { data: expenseRows }] = await Promise.all([
+        client.from('members').select('name').eq('group_id', groupId).order('created_at'),
+        client.from('expenses').select('*').eq('group_id', groupId).order('created_at'),
+      ])
+      if (memberRows?.length) {
+        const names = memberRows.map((row) => row.name as string)
+        setRegisteredMembers(names)
+        setPaidBy((current) => current || names[0])
+        setBeneficiary((current) => current.length ? current : names)
+        setSetupComplete(true)
+      }
+      if (expenseRows) {
+        setRecords(expenseRows.map((row) => ({ title: row.title, paidBy: row.paid_by, beneficiary: row.beneficiary as string[], amount: Number(row.amount), returners: row.mode === '男気' ? [] : (row.beneficiary as string[]).filter((name) => name !== row.paid_by), mode: row.mode })))
+      }
+    }
+    void load()
+    const channel = client.channel(`flowari-${groupId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${groupId}` }, () => { void load() }).subscribe()
+    return () => { void client.removeChannel(channel) }
+  }, [groupId])
 
   return (
     <div className={`site-shell theme-${destination}`}>
@@ -62,13 +96,13 @@ function App() {
         <section className="phone" aria-label="Flowariのアプリ画面">
           <div className="app-header"><button className="mascot destination-trigger" onClick={() => setDestinationMenuOpen((current) => !current)} aria-label="行先テーマを選ぶ" aria-expanded={destinationMenuOpen}>◌</button><div><b>Flowari</b><small>{setupComplete ? 'なかよく、すっきり精算' : 'はじめる準備'}</small></div></div>
           {destinationMenuOpen && <div className="destination-menu" role="dialog" aria-label="行先を選ぶ"><p>行先を選ぶ</p><div>{(['山', '海', '街'] as Destination[]).map((place) => <button key={place} className={destination === place ? 'selected' : ''} onClick={() => { setDestination(place); setDestinationMenuOpen(false) }}><img src={destinationIllustrations[place]} alt="" />{place}</button>)}</div></div>}
-          {!setupComplete ? <SetupScreen destination={destination} onComplete={(members) => { setRegisteredMembers(members); setPaidBy(members[0]); setBeneficiary(members); setSetupComplete(true) }} /> : <>
+          {!setupComplete ? <SetupScreen destination={destination} onComplete={(members) => { setRegisteredMembers(members); setPaidBy(members[0]); setBeneficiary(members); setSetupComplete(true); if (supabase) void (async () => { await supabase.from('groups').upsert({ id: groupId, name: 'Flowariグループ' }); await supabase.from('members').insert(members.map((name) => ({ group_id: groupId, name }))) })() }} /> : <>
           <nav className="tabs" aria-label="画面切り替え">
             {(['入力', '履歴', '精算', '明細'] as Screen[]).map((name) => <button key={name} className={screen === name ? 'active' : ''} onClick={() => setScreen(name)}>{name}</button>)}
           </nav>
 
           <div className="screen-content">
-            {screen === '入力' && <InputScreen members={activeMembers} item={item} amount={amount} paidBy={paidBy} beneficiary={beneficiary} splitMode={splitMode} submitted={submitted} setItem={setItem} setAmount={setAmount} setPaidBy={setPaidBy} setBeneficiary={setBeneficiary} setSplitMode={setSplitMode} onEdited={() => setSubmitted(false)} onSubmit={() => { const value = Number(amount); if (item.trim() && value > 0 && beneficiary.length > 0) { setRecords([...records, { title: item.trim(), paidBy, beneficiary, amount: value, returners: splitMode === '男気' ? [] : beneficiary.filter((name) => name !== paidBy), mode: splitMode }]); setSubmitted(true); setScreen('履歴') } }} />}
+            {screen === '入力' && <InputScreen members={activeMembers} item={item} amount={amount} paidBy={paidBy} beneficiary={beneficiary} splitMode={splitMode} submitted={submitted} setItem={setItem} setAmount={setAmount} setPaidBy={setPaidBy} setBeneficiary={setBeneficiary} setSplitMode={setSplitMode} onEdited={() => setSubmitted(false)} onSubmit={() => { const value = Number(amount); if (item.trim() && value > 0 && beneficiary.length > 0) { const next = { title: item.trim(), paidBy, beneficiary, amount: value, returners: splitMode === '男気' ? [] : beneficiary.filter((name) => name !== paidBy), mode: splitMode }; setRecords((current) => [...current, next]); if (supabase) void supabase.from('expenses').insert({ group_id: groupId, title: next.title, amount: next.amount, paid_by: next.paidBy, beneficiary: next.beneficiary, mode: next.mode }); setSubmitted(true); setScreen('履歴') } }} />}
             {screen === '履歴' && <HistoryScreen entries={records} members={activeMembers} onDelete={(index) => { setRecords((current) => current.filter((_, entryIndex) => entryIndex !== index)); setCompletedTransfers([]); setAllPaidCelebrated(false) }} />}
             {screen === '精算' && <SettlementScreen members={activeMembers} entries={records} completedTransfers={completedTransfers} setCompletedTransfers={setCompletedTransfers} allPaidCelebrated={allPaidCelebrated} setAllPaidCelebrated={setAllPaidCelebrated} />}
             {screen === '明細' && <DetailsScreen entries={records} />}
