@@ -58,10 +58,11 @@ function App() {
     if (!supabase) return
     const client = supabase
     const load = async () => {
-      const [{ data: memberRows }, { data: expenseRows }] = await Promise.all([
+      const [{ data: memberRows, error: memberError }, { data: expenseRows, error: expenseError }] = await Promise.all([
         client.from('members').select('name').eq('group_id', groupId).order('created_at'),
         client.from('expenses').select('*').eq('group_id', groupId).order('created_at'),
       ])
+      if (memberError || expenseError) console.error('Flowari sync error', memberError ?? expenseError)
       if (memberRows?.length) {
         const names = memberRows.map((row) => row.name as string)
         setRegisteredMembers(names)
