@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch
 import mountainIllustration from './assets/mountain.png'
 import seaIllustration from './assets/sea.png'
 import cityIllustration from './assets/city.png'
-import { supabase } from './lib/supabase'
+import { createSupabaseClient } from './lib/supabase'
 
 type Screen = '入力' | '履歴' | '精算' | '明細'
 type SplitMode = '割り勘' | '男気' | '先輩'
@@ -48,6 +48,7 @@ function App() {
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
     return created
   }, [])
+  const supabase = useMemo(() => createSupabaseClient(groupId), [groupId])
   const activeMembers = registeredMembers.length > 0 ? registeredMembers : people.map((person) => person.name)
   const total = useMemo(() => records.reduce((sum, entry) => sum + entry.amount, 0), [records])
 
