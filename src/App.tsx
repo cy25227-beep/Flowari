@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react'
-import mountainIllustration from 'C:/Users/haruk/AppData/Local/Temp/codex-clipboard-b90db4f9-44e6-49c3-8383-574910137002.png'
-import seaIllustration from 'C:/Users/haruk/AppData/Local/Temp/codex-clipboard-54a9f58b-7883-4a0c-b7fd-41c65a6bed5f.png'
-import cityIllustration from 'C:/Users/haruk/AppData/Local/Temp/codex-clipboard-a6439011-6e20-4f3a-8d38-8b2a01107f9e.png'
+import mountainIllustration from './assets/mountain.png'
+import seaIllustration from './assets/sea.png'
+import cityIllustration from './assets/city.png'
 
 type Screen = '入力' | '履歴' | '精算' | '明細'
 type SplitMode = '割り勘' | '男気' | '先輩'
