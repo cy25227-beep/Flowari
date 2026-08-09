@@ -108,3 +108,4 @@ html { -webkit-text-size-adjust:100%; }
 .share-header-button { position:absolute; top:22px; right:12px; z-index:4; padding:6px 9px; border:1px solid var(--theme-line); border-radius:9px; color:var(--theme-deep); background:#fff; font-size:10px; font-weight:700; }
 .share-overlay { position:fixed; z-index:30; inset:0; overflow:auto; padding:20px 12px; background:var(--theme-pale); }
 .share-overlay .share-screen { max-width:520px; margin:0 auto; }
+.sync-error { margin:0 0 12px; padding:10px; border-radius:10px; color:#a5464c; background:#fff0f1; font-size:10px; line-height:1.5; }
