@@ -34,6 +34,7 @@ function App() {
   const [splitMode, setSplitMode] = useState<SplitMode>('割り勘')
   const [setupComplete, setSetupComplete] = useState(false)
   const [shareReady, setShareReady] = useState(false)
+  const [showShareScreen, setShowShareScreen] = useState(false)
   const [registeredMembers, setRegisteredMembers] = useState<string[]>([])
   const [records, setRecords] = useState<HistoryEntry[]>([])
   const [completedTransfers, setCompletedTransfers] = useState<string[]>([])
@@ -96,6 +97,8 @@ function App() {
         </section>
 
         <section className="phone" aria-label="Flowariのアプリ画面">
+          {setupComplete && <button className="share-header-button" onClick={() => setShowShareScreen(true)}>共有URL</button>}
+          {showShareScreen && <div className="share-overlay"><ShareScreen groupId={groupId} onContinue={() => setShowShareScreen(false)} /></div>}
           <div className="app-header"><button className="mascot destination-trigger" onClick={() => setDestinationMenuOpen((current) => !current)} aria-label="行先テーマを選ぶ" aria-expanded={destinationMenuOpen}>◌</button><div><b>Flowari</b><small>{setupComplete ? 'なかよく、すっきり精算' : 'はじめる準備'}</small></div></div>
           {destinationMenuOpen && <div className="destination-menu" role="dialog" aria-label="行先を選ぶ"><p>行先を選ぶ</p><div>{(['山', '海', '街'] as Destination[]).map((place) => <button key={place} className={destination === place ? 'selected' : ''} onClick={() => { setDestination(place); setDestinationMenuOpen(false) }}><img src={destinationIllustrations[place]} alt="" />{place}</button>)}</div></div>}
           {!setupComplete ? (shareReady ? <ShareScreen groupId={groupId} onContinue={() => setSetupComplete(true)} /> : <SetupScreen destination={destination} onComplete={(members) => { setRegisteredMembers(members); setPaidBy(members[0]); setBeneficiary(members); setShareReady(true); if (supabase) void (async () => { await supabase.from('groups').upsert({ id: groupId, name: 'Flowariグループ' }); await supabase.from('members').insert(members.map((name) => ({ group_id: groupId, name }))) })() }} />) : <>

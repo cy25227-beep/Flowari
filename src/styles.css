@@ -105,3 +105,6 @@ html { -webkit-text-size-adjust:100%; }
 .share-icon { display:grid; place-items:center; width:64px; height:64px; margin:0 auto 18px; border-radius:22px; color:#fff; background:var(--theme-main); box-shadow:0 10px 20px color-mix(in srgb,var(--theme-main) 28%,transparent); font-size:30px; font-weight:700; }
 .share-url { overflow:hidden; margin:18px 0 10px; padding:12px; border:1px solid var(--theme-line); border-radius:11px; color:var(--theme-deep); background:#fff; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
 .share-continue { margin-top:12px; padding:8px; border:0; color:#7890a6; background:transparent; font-size:11px; font-weight:700; }
+.share-header-button { position:absolute; top:22px; right:12px; z-index:4; padding:6px 9px; border:1px solid var(--theme-line); border-radius:9px; color:var(--theme-deep); background:#fff; font-size:10px; font-weight:700; }
+.share-overlay { position:fixed; z-index:30; inset:0; overflow:auto; padding:20px 12px; background:var(--theme-pale); }
+.share-overlay .share-screen { max-width:520px; margin:0 auto; }
