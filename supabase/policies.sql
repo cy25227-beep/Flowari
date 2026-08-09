@@ -1,11 +1,11 @@
 -- Run this after the tables have been created and RLS is enabled.
--- The share URL's group UUID is sent as x-flowari-group by the app.
+-- The share URL's group UUID is sent in the standard x-client-info header by the app.
 
 create or replace function public.flowari_group_id()
 returns uuid
 language sql stable
 as $$
-  select nullif(current_setting('request.headers', true)::json->>'x-flowari-group', '')::uuid
+  select nullif(regexp_replace(current_setting('request.headers', true)::json->>'x-client-info', '^flowari-group/', ''), '')::uuid
 $$;
 
 create policy "flowari group access" on public.groups
